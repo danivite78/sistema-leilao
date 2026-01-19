@@ -10,72 +10,77 @@ public class ProdutosDAO {
     PreparedStatement prep;
     ResultSet resultset;
     
-    // MÉTODO ATUALIZADO: venderProduto()
+    // ============================================
+    // MÉTODO 1: venderProduto() - MELHORADO
+    // ============================================
     public boolean venderProduto(int id) {
         boolean vendidoComSucesso = false;
         
         try {
+            // 1. Conectar ao banco
             conn = new conectaDAO().connectDB();
             
             if (conn == null) {
-                JOptionPane.showMessageDialog(null, "❌ Erro: Não foi possível conectar ao banco de dados.");
+                JOptionPane.showMessageDialog(null, 
+                    "Erro: Não foi possível conectar ao banco de dados.",
+                    "Erro de Conexão",
+                    JOptionPane.ERROR_MESSAGE);
                 return false;
             }
             
-            // PRIMEIRO: Verifica se o produto existe e está disponível
-            String sqlVerificar = "SELECT id, nome, status FROM produtos WHERE id = ?";
+            // 2. Verificar se o produto existe
+            String sqlVerificar = "SELECT id, nome, valor, status FROM produtos WHERE id = ?";
             prep = conn.prepareStatement(sqlVerificar);
             prep.setInt(1, id);
             resultset = prep.executeQuery();
             
             if (resultset.next()) {
                 String nomeProduto = resultset.getString("nome");
+                double valorProduto = resultset.getDouble("valor");
                 String statusAtual = resultset.getString("status");
                 
-                // Verifica se já está vendido
+                // 3. Verificar se já está vendido
                 if ("Vendido".equalsIgnoreCase(statusAtual)) {
                     JOptionPane.showMessageDialog(null, 
-                        "❌ Produto '" + nomeProduto + "' já foi vendido anteriormente!",
+                        "Produto '" + nomeProduto + "' já foi vendido!",
                         "Produto Indisponível",
                         JOptionPane.WARNING_MESSAGE);
                     return false;
                 }
                 
-                // Confirmação da venda
+                // 4. Pedir confirmação
                 int confirmacao = JOptionPane.showConfirmDialog(null,
-                    "Deseja confirmar a venda do produto?\n\n" +
+                    "CONFIRMAR VENDA\n\n" +
                     "ID: " + id + "\n" +
                     "Nome: " + nomeProduto + "\n" +
-                    "Status atual: " + statusAtual,
+                    "Valor: R$ " + valorProduto + "\n" +
+                    "Status atual: " + statusAtual + "\n\n" +
+                    "Deseja realmente vender este produto?",
                     "Confirmar Venda",
                     JOptionPane.YES_NO_OPTION,
                     JOptionPane.QUESTION_MESSAGE);
                 
                 if (confirmacao == JOptionPane.YES_OPTION) {
-                    // ATUALIZA o status para "Vendido"
-                    String sqlAtualizar = "UPDATE produtos SET status = ? WHERE id = ?";
+                    // 5. Atualizar status para "Vendido"
+                    String sqlAtualizar = "UPDATE produtos SET status = 'Vendido' WHERE id = ?";
                     PreparedStatement prepUpdate = conn.prepareStatement(sqlAtualizar);
-                    prepUpdate.setString(1, "Vendido");
-                    prepUpdate.setInt(2, id);
+                    prepUpdate.setInt(1, id);
                     
                     int linhasAfetadas = prepUpdate.executeUpdate();
                     
                     if (linhasAfetadas > 0) {
                         JOptionPane.showMessageDialog(null,
-                            "✅ Venda realizada com sucesso!\n\n" +
+                            "VENDA REALIZADA COM SUCESSO!\n\n" +
                             "Produto: " + nomeProduto + "\n" +
-                            "ID: " + id + "\n" +
-                            "Status atualizado para: VENDIDO",
+                            "Valor: R$ " + valorProduto + "\n" +
+                            "Status: VENDIDO",
                             "Venda Concluída",
                             JOptionPane.INFORMATION_MESSAGE);
                         
                         vendidoComSucesso = true;
-                        
-                        // Registra a venda (opcional - para histórico)
-                        registrarHistoricoVenda(id, nomeProduto);
                     } else {
                         JOptionPane.showMessageDialog(null,
-                            "❌ Erro ao atualizar o status do produto.",
+                            "Erro ao atualizar o produto.",
                             "Erro na Venda",
                             JOptionPane.ERROR_MESSAGE);
                     }
@@ -83,64 +88,73 @@ public class ProdutosDAO {
                     prepUpdate.close();
                 }
             } else {
+                // 6. Produto não encontrado
                 JOptionPane.showMessageDialog(null,
-                    "❌ Produto com ID " + id + " não encontrado!",
+                    "Produto com ID " + id + " não encontrado!",
                     "Produto Não Encontrado",
                     JOptionPane.ERROR_MESSAGE);
             }
             
-            // Fecha recursos
+            // 7. Fechar tudo
             if (resultset != null) resultset.close();
             if (prep != null) prep.close();
             if (conn != null) conn.close();
             
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null,
-                "❌ Erro ao processar venda: " + e.getMessage(),
+                "Erro ao processar venda: " + e.getMessage(),
                 "Erro no Sistema",
                 JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
         }
         
         return vendidoComSucesso;
     }
     
-    // MÉTODO NOVO: registrarHistoricoVenda (opcional para histórico)
-    private void registrarHistoricoVenda(int idProduto, String nomeProduto) {
+    // ============================================
+    // MÉTODO 2: listarProdutosVendidos() - NOVO
+    // ============================================
+    public ArrayList<ProdutosDTO> listarProdutosVendidos() {
+        ArrayList<ProdutosDTO> listaVendidos = new ArrayList<>();
+        
         try {
-            // Cria tabela de histórico se não existir
-            Connection connHist = new conectaDAO().connectDB();
-            String sqlCriarTabela = "CREATE TABLE IF NOT EXISTS historico_vendas (" +
-                                   "id_venda INT AUTO_INCREMENT PRIMARY KEY," +
-                                   "id_produto INT NOT NULL," +
-                                   "nome_produto VARCHAR(100) NOT NULL," +
-                                   "data_venda DATETIME DEFAULT CURRENT_TIMESTAMP," +
-                                   "FOREIGN KEY (id_produto) REFERENCES produtos(id)" +
-                                   ")";
+            // 1. Conectar ao banco
+            conn = new conectaDAO().connectDB();
             
-            PreparedStatement prepCreate = connHist.prepareStatement(sqlCriarTabela);
-            prepCreate.executeUpdate();
-            prepCreate.close();
+            if (conn == null) {
+                return listaVendidos; // Retorna lista vazia se não conectar
+            }
             
-            // Insere no histórico
-            String sqlInsert = "INSERT INTO historico_vendas (id_produto, nome_produto) VALUES (?, ?)";
-            PreparedStatement prepInsert = connHist.prepareStatement(sqlInsert);
-            prepInsert.setInt(1, idProduto);
-            prepInsert.setString(2, nomeProduto);
-            prepInsert.executeUpdate();
+            // 2. Buscar produtos com status "Vendido"
+            String sql = "SELECT * FROM produtos WHERE status = 'Vendido' ORDER BY id DESC";
+            prep = conn.prepareStatement(sql);
+            resultset = prep.executeQuery();
             
-            prepInsert.close();
-            connHist.close();
+            // 3. Adicionar cada produto na lista
+            while (resultset.next()) {
+                ProdutosDTO produto = new ProdutosDTO();
+                produto.setId(resultset.getInt("id"));
+                produto.setNome(resultset.getString("nome"));
+                produto.setValor(resultset.getDouble("valor"));
+                produto.setStatus(resultset.getString("status"));
+                
+                listaVendidos.add(produto);
+            }
             
-            System.out.println("✅ Histórico de venda registrado para produto ID: " + idProduto);
+            // 4. Fechar conexões
+            resultset.close();
+            prep.close();
+            conn.close();
             
         } catch (Exception e) {
-            System.out.println("⚠️ Aviso: Não foi possível registrar histórico: " + e.getMessage());
-            // Não interrompe o fluxo principal se o histórico falhar
+            System.out.println("Erro ao listar produtos vendidos: " + e.getMessage());
         }
+        
+        return listaVendidos;
     }
     
-    // MÉTODO AUXILIAR: buscarProdutoPorId
+    // ============================================
+    // MÉTODO 3: buscarProdutoPorId() - SIMPLIFICADO
+    // ============================================
     public ProdutosDTO buscarProdutoPorId(int id) {
         ProdutosDTO produto = null;
         
@@ -171,39 +185,9 @@ public class ProdutosDAO {
         return produto;
     }
     
-    // MÉTODO: listarProdutosVendidos (nova funcionalidade)
-    public ArrayList<ProdutosDTO> listarProdutosVendidos() {
-        ArrayList<ProdutosDTO> listaVendidos = new ArrayList<>();
-        
-        try {
-            conn = new conectaDAO().connectDB();
-            
-            String sql = "SELECT * FROM produtos WHERE status = 'Vendido' ORDER BY id DESC";
-            prep = conn.prepareStatement(sql);
-            resultset = prep.executeQuery();
-            
-            while (resultset.next()) {
-                ProdutosDTO produto = new ProdutosDTO();
-                produto.setId(resultset.getInt("id"));
-                produto.setNome(resultset.getString("nome"));
-                produto.setValor(resultset.getDouble("valor"));
-                produto.setStatus(resultset.getString("status"));
-                
-                listaVendidos.add(produto);
-            }
-            
-            resultset.close();
-            prep.close();
-            conn.close();
-            
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erro ao listar produtos vendidos: " + e.getMessage());
-        }
-        
-        return listaVendidos;
-    }
-    
-    // MÉTODO: listarProdutosDisponiveis
+    // ============================================
+    // MÉTODO 4: listarProdutosDisponiveis() - MANTIDO
+    // ============================================
     public ArrayList<ProdutosDTO> listarProdutosDisponiveis() {
         ArrayList<ProdutosDTO> listaDisponiveis = new ArrayList<>();
         
@@ -235,7 +219,9 @@ public class ProdutosDAO {
         return listaDisponiveis;
     }
     
-    // MÉTODO: cadastrarProduto (mantido da versão anterior)
+    // ============================================
+    // MÉTODO 5: cadastrarProduto() - MANTIDO
+    // ============================================
     public void cadastrarProduto(ProdutosDTO produto) {
         try {
             conn = new conectaDAO().connectDB();
@@ -249,18 +235,22 @@ public class ProdutosDAO {
             int rowsAffected = prep.executeUpdate();
             
             if (rowsAffected > 0) {
-                JOptionPane.showMessageDialog(null, "✅ Produto cadastrado com sucesso!");
+                JOptionPane.showMessageDialog(null, "Produto cadastrado com sucesso!");
+            } else {
+                JOptionPane.showMessageDialog(null, "Erro ao cadastrar produto!");
             }
             
             prep.close();
             conn.close();
             
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "❌ Erro ao cadastrar produto: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Erro ao cadastrar produto: " + e.getMessage());
         }
     }
     
-    // MÉTODO: listarProdutos (mantido da versão anterior)
+    // ============================================
+    // MÉTODO 6: listarProdutos() - MANTIDO
+    // ============================================
     public ArrayList<ProdutosDTO> listarProdutos() {
         ArrayList<ProdutosDTO> listagem = new ArrayList<>();
         
@@ -290,5 +280,61 @@ public class ProdutosDAO {
         }
         
         return listagem;
+    }
+    
+    // ============================================
+    // MÉTODO 7: getTotalProdutosVendidos() - NOVO (OPCIONAL)
+    // ============================================
+    public int getTotalProdutosVendidos() {
+        int total = 0;
+        
+        try {
+            conn = new conectaDAO().connectDB();
+            
+            String sql = "SELECT COUNT(*) as total FROM produtos WHERE status = 'Vendido'";
+            prep = conn.prepareStatement(sql);
+            resultset = prep.executeQuery();
+            
+            if (resultset.next()) {
+                total = resultset.getInt("total");
+            }
+            
+            resultset.close();
+            prep.close();
+            conn.close();
+            
+        } catch (Exception e) {
+            System.out.println("Erro ao contar produtos vendidos: " + e.getMessage());
+        }
+        
+        return total;
+    }
+    
+    // ============================================
+    // MÉTODO 8: getValorTotalVendas() - NOVO (OPCIONAL)
+    // ============================================
+    public double getValorTotalVendas() {
+        double total = 0.0;
+        
+        try {
+            conn = new conectaDAO().connectDB();
+            
+            String sql = "SELECT SUM(valor) as total FROM produtos WHERE status = 'Vendido'";
+            prep = conn.prepareStatement(sql);
+            resultset = prep.executeQuery();
+            
+            if (resultset.next()) {
+                total = resultset.getDouble("total");
+            }
+            
+            resultset.close();
+            prep.close();
+            conn.close();
+            
+        } catch (Exception e) {
+            System.out.println("Erro ao calcular valor total: " + e.getMessage());
+        }
+        
+        return total;
     }
 }
