@@ -136,35 +136,32 @@ public class listagemVIEW extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnVenderActionPerformed(java.awt.event.ActionEvent evt) {
-        String id = id_produto_venda.getText().trim();
-        
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Digite o ID do produto!", "Atenção", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        try {
-            int produtoId = Integer.parseInt(id);
-            
-            // Confirmação antes de vender
-            int confirmacao = JOptionPane.showConfirmDialog(null, 
-                "Confirmar venda do produto ID " + produtoId + "?", 
-                "Confirmar Venda", 
-                JOptionPane.YES_NO_OPTION);
-            
-            if (confirmacao == JOptionPane.YES_OPTION) {
-                ProdutosDAO produtosdao = new ProdutosDAO();
-                produtosdao.venderProduto(produtoId);
-                listarProdutos(); // Atualiza a tabela após vender
-                id_produto_venda.setText(""); // Limpa o campo
-            }
-            
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(null, "ID inválido! Digite um número.", "Erro", JOptionPane.ERROR_MESSAGE);
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(null, "Erro ao vender produto: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+    String id = id_produto_venda.getText().trim();
+    
+    if (id.isEmpty()) {
+        JOptionPane.showMessageDialog(null, "Digite o ID do produto!", "Atenção", JOptionPane.WARNING_MESSAGE);
+        return;
     }
+    
+    try {
+        int produtoId = Integer.parseInt(id);
+        
+        ProdutosDAO produtosdao = new ProdutosDAO();
+        boolean vendaRealizada = produtosdao.venderProduto(produtoId);
+        
+        if (vendaRealizada) {
+            // Atualiza a tabela
+            listarProdutos();
+            // Limpa o campo
+            id_produto_venda.setText("");
+        }
+        
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(null, "ID inválido! Digite um número.", "Erro", JOptionPane.ERROR_MESSAGE);
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(null, "Erro: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+    }
+}
 
     private void btnVendasActionPerformed(java.awt.event.ActionEvent evt) {
         // TODO: Implementar tela de vendas se necessário
