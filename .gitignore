@@ -1,0 +1,11 @@
+# Java / NetBeans
+/LeiloesTDSat/build/
+/LeiloesTDSat/dist/
+/LeiloesTDSat/nbproject/private/
+*.class
+^X
+^X
+
+
+ 
+
