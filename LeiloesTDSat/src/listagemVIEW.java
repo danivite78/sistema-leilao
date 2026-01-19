@@ -1,6 +1,7 @@
 import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
+import java.text.DecimalFormat;
 
 public class listagemVIEW extends javax.swing.JFrame {
 
@@ -23,7 +24,7 @@ public class listagemVIEW extends javax.swing.JFrame {
         id_produto_venda = new javax.swing.JTextPane();
         btnVender = new javax.swing.JButton();
         jSeparator1 = new javax.swing.JSeparator();
-        btnVendas = new javax.swing.JButton();
+        btnProdutosVendidos = new javax.swing.JButton(); // NOME ALTERADO
         btnVoltar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -71,10 +72,11 @@ public class listagemVIEW extends javax.swing.JFrame {
             }
         });
 
-        btnVendas.setText("Consultar Vendas");
-        btnVendas.addActionListener(new java.awt.event.ActionListener() {
+        // BOTÃO ALTERADO: Agora mostra produtos vendidos
+        btnProdutosVendidos.setText("Ver Produtos Vendidos");
+        btnProdutosVendidos.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnVendasActionPerformed(evt);
+                btnProdutosVendidosActionPerformed(evt);
             }
         });
 
@@ -103,7 +105,7 @@ public class listagemVIEW extends javax.swing.JFrame {
                         .addGroup(layout.createSequentialGroup()
                             .addComponent(btnVoltar)
                             .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(btnVendas, javax.swing.GroupLayout.PREFERRED_SIZE, 168, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(btnProdutosVendidos, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)) // TAMANHO AJUSTADO
                         .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 440, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(49, Short.MAX_VALUE))
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
@@ -127,7 +129,7 @@ public class listagemVIEW extends javax.swing.JFrame {
                 .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 67, Short.MAX_VALUE)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnVendas)
+                    .addComponent(btnProdutosVendidos)
                     .addComponent(btnVoltar))
                 .addGap(17, 17, 17))
         );
@@ -135,51 +137,113 @@ public class listagemVIEW extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    // ============================================
+    // MÉTODO: btnVenderActionPerformed
+    // ============================================
     private void btnVenderActionPerformed(java.awt.event.ActionEvent evt) {
-    String id = id_produto_venda.getText().trim();
-    
-    if (id.isEmpty()) {
-        JOptionPane.showMessageDialog(null, "Digite o ID do produto!", "Atenção", JOptionPane.WARNING_MESSAGE);
-        return;
-    }
-    
-    try {
-        int produtoId = Integer.parseInt(id);
+        String id = id_produto_venda.getText().trim();
         
-        ProdutosDAO produtosdao = new ProdutosDAO();
-        boolean vendaRealizada = produtosdao.venderProduto(produtoId);
-        
-        if (vendaRealizada) {
-            // Atualiza a tabela
-            listarProdutos();
-            // Limpa o campo
-            id_produto_venda.setText("");
+        if (id.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Digite o ID do produto!", "Atenção", JOptionPane.WARNING_MESSAGE);
+            return;
         }
         
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(null, "ID inválido! Digite um número.", "Erro", JOptionPane.ERROR_MESSAGE);
-    } catch (Exception e) {
-        JOptionPane.showMessageDialog(null, "Erro: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        try {
+            int produtoId = Integer.parseInt(id);
+            
+            ProdutosDAO produtosdao = new ProdutosDAO();
+            boolean vendaRealizada = produtosdao.venderProduto(produtoId);
+            
+            if (vendaRealizada) {
+                // Atualiza a tabela
+                listarProdutos();
+                // Limpa o campo
+                id_produto_venda.setText("");
+            }
+            
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(null, "ID inválido! Digite um número.", "Erro", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, "Erro: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }
-}
 
-    private void btnVendasActionPerformed(java.awt.event.ActionEvent evt) {
-        // TODO: Implementar tela de vendas se necessário
-        JOptionPane.showMessageDialog(null, "Funcionalidade em desenvolvimento!", "Aviso", JOptionPane.INFORMATION_MESSAGE);
+    // ============================================
+    // MÉTODO: btnProdutosVendidosActionPerformed - NOVO
+    // ============================================
+    private void btnProdutosVendidosActionPerformed(java.awt.event.ActionEvent evt) {
+        try {
+            // Cria objeto DAO
+            ProdutosDAO dao = new ProdutosDAO();
+            
+            // Usa o novo método para buscar produtos vendidos
+            ArrayList<ProdutosDTO> produtosVendidos = dao.listarProdutosVendidos();
+            
+            // Formata números
+            DecimalFormat df = new DecimalFormat("#,##0.00");
+            
+            if (produtosVendidos.isEmpty()) {
+                // Se não há produtos vendidos
+                JOptionPane.showMessageDialog(null,
+                    "Nenhum produto vendido ainda!\n\n" +
+                    "Venda alguns produtos primeiro.",
+                    "Produtos Vendidos",
+                    JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                // Cria mensagem com todos os produtos vendidos
+                StringBuilder mensagem = new StringBuilder();
+                mensagem.append("=== PRODUTOS VENDIDOS ===\n\n");
+                mensagem.append("Total: ").append(produtosVendidos.size()).append(" produtos\n\n");
+                
+                double valorTotal = 0;
+                
+                // Adiciona cada produto na mensagem
+                for (ProdutosDTO produto : produtosVendidos) {
+                    mensagem.append("ID: ").append(produto.getId()).append("\n");
+                    mensagem.append("Nome: ").append(produto.getNome()).append("\n");
+                    mensagem.append("Valor: R$ ").append(df.format(produto.getValor())).append("\n");
+                    mensagem.append("Status: ").append(produto.getStatus()).append("\n");
+                    mensagem.append("--------------------\n");
+                    
+                    valorTotal += produto.getValor();
+                }
+                
+                mensagem.append("\nVALOR TOTAL DAS VENDAS: R$ ").append(df.format(valorTotal));
+                
+                // Mostra em uma caixa de diálogo
+                JOptionPane.showMessageDialog(null,
+                    mensagem.toString(),
+                    "Produtos Vendidos",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Opcional: mostra também no console
+                System.out.println("Produtos vendidos encontrados: " + produtosVendidos.size());
+                System.out.println("Valor total: R$ " + df.format(valorTotal));
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Erro ao buscar produtos vendidos:\n" + e.getMessage(),
+                "Erro",
+                JOptionPane.ERROR_MESSAGE);
+        }
     }
 
+    // ============================================
+    // MÉTODO: btnVoltarActionPerformed
+    // ============================================
     private void btnVoltarActionPerformed(java.awt.event.ActionEvent evt) {
         // Volta para a tela de cadastro
         new cadastroVIEW().setVisible(true);
         this.dispose(); // Fecha a tela atual
     }
 
+    // ============================================
+    // MÉTODO MAIN
+    // ============================================
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -206,8 +270,11 @@ public class listagemVIEW extends javax.swing.JFrame {
         });
     }
 
+    // ============================================
+    // VARIÁVEIS - ATUALIZADO
+    // ============================================
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnVendas;
+    private javax.swing.JButton btnProdutosVendidos; // NOME ALTERADO
     private javax.swing.JButton btnVender;
     private javax.swing.JButton btnVoltar;
     private javax.swing.JTextPane id_produto_venda;
@@ -219,6 +286,9 @@ public class listagemVIEW extends javax.swing.JFrame {
     private javax.swing.JTable listaProdutos;
     // End of variables declaration//GEN-END:variables
 
+    // ============================================
+    // MÉTODO: listarProdutos
+    // ============================================
     private void listarProdutos() {
         try {
             ProdutosDAO produtosdao = new ProdutosDAO();
@@ -255,8 +325,37 @@ public class listagemVIEW extends javax.swing.JFrame {
         }
     }
     
-    // Método para atualizar a tabela (pode ser chamado de fora)
+    // ============================================
+    // MÉTODO: atualizarTabela
+    // ============================================
     public void atualizarTabela() {
         listarProdutos();
+    }
+    
+    // ============================================
+    // MÉTODO ADICIONAL: mostrarEstatisticasVendas
+    // ============================================
+    public void mostrarEstatisticasVendas() {
+        try {
+            ProdutosDAO dao = new ProdutosDAO();
+            
+            // Usa os métodos novos opcionais
+            int totalVendidos = dao.getTotalProdutosVendidos();
+            double valorTotal = dao.getValorTotalVendas();
+            
+            DecimalFormat df = new DecimalFormat("#,##0.00");
+            
+            JOptionPane.showMessageDialog(null,
+                "=== ESTATÍSTICAS DE VENDAS ===\n\n" +
+                "Total de produtos vendidos: " + totalVendidos + "\n" +
+                "Valor total das vendas: R$ " + df.format(valorTotal) + "\n\n" +
+                "Para ver detalhes dos produtos vendidos,\n" +
+                "clique em 'Ver Produtos Vendidos'.",
+                "Estatísticas",
+                JOptionPane.INFORMATION_MESSAGE);
+                
+        } catch (Exception e) {
+            System.out.println("Erro ao mostrar estatísticas: " + e.getMessage());
+        }
     }
 }
