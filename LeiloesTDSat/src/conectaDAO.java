@@ -11,11 +11,12 @@ public class conectaDAO {
             // Carrega o driver
             Class.forName("com.mysql.cj.jdbc.Driver");
             
-            // String de conexão - SENHA VAZIA
+            // String de conexão
             String url = "jdbc:mysql://localhost:3306/uc11?" +
                         "useSSL=false&" +
                         "serverTimezone=UTC&" +
-                        "allowPublicKeyRetrieval=true";
+                        "allowPublicKeyRetrieval=true&" +
+                        "autoReconnect=true";
             
             // Conecta com senha vazia
             conn = DriverManager.getConnection(url, "root", "");
@@ -25,20 +26,21 @@ public class conectaDAO {
         } catch (ClassNotFoundException e) {
             JOptionPane.showMessageDialog(null, 
                 "❌ Driver MySQL não encontrado!\n" +
-                "Adicione o JAR do MySQL Connector ao projeto.\n" +
-                "Erro: " + e.getMessage());
+                "Adicione mysql-connector-j-9.0.0.jar ao projeto.\n" +
+                "Erro: " + e.getMessage(),
+                "Erro de Driver",
+                JOptionPane.ERROR_MESSAGE);
             
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null,
-                "❌ Erro de conexão: " + e.getMessage() + "\n\n" +
-                "Certifique-se que:\n" +
-                "1. MySQL está rodando (execute: mysqld --console)\n" +
-                "2. Banco 'uc11' existe\n" +
-                "3. Usuário: 'root', Senha: [vazia]\n\n" +
-                "Para criar o banco, execute no MySQL:\n" +
-                "CREATE DATABASE uc11;\n" +
-                "USE uc11;\n" +
-                "CREATE TABLE produtos...");
+                "❌ Erro de conexão com o banco de dados!\n\n" +
+                "Detalhes: " + e.getMessage() + "\n\n" +
+                "Solução:\n" +
+                "1. Certifique-se que o MySQL está rodando\n" +
+                "2. Execute: mysqld --console\n" +
+                "3. Banco 'uc11' deve existir",
+                "Erro de Conexão",
+                JOptionPane.ERROR_MESSAGE);
         }
         
         return conn;
