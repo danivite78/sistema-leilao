@@ -1,24 +1,34 @@
 import java.util.ArrayList;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.JOptionPane;
+import java.text.DecimalFormat;
 
 public class VendasVIEW extends javax.swing.JFrame {
 
     public VendasVIEW() {
         initComponents();
-        carregarProdutosVendidos();
+        setLocationRelativeTo(null); // Centraliza
+        setTitle("Produtos Vendidos");
+        carregarProdutosVendidos(); // Carrega produtos com status "Vendido"
     }
-    
+
+    @SuppressWarnings("unchecked")
     private void initComponents() {
-        // Componentes da tela
+
+        jLabel1 = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
         tabelaVendidos = new javax.swing.JTable();
         btnVoltar = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
-        
+        jLabel2 = new javax.swing.JLabel();
+        lblTotalVendidos = new javax.swing.JLabel();
+        lblValorTotal = new javax.swing.JLabel();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("Produtos Vendidos");
-        
-        // Configurar tabela
+
+        jLabel1.setFont(new java.awt.Font("Lucida Fax", 0, 18));
+        jLabel1.setText("Produtos Vendidos");
+
+        // Configura tabela para produtos vendidos
         tabelaVendidos.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {},
             new String [] {
@@ -26,31 +36,35 @@ public class VendasVIEW extends javax.swing.JFrame {
             }
         ));
         jScrollPane1.setViewportView(tabelaVendidos);
-        
-        // Botão Voltar
+
         btnVoltar.setText("Voltar");
         btnVoltar.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btnVoltarActionPerformed(evt);
             }
         });
-        
-        // Título
-        jLabel1.setFont(new java.awt.Font("Arial", 1, 18));
-        jLabel1.setText("Produtos Vendidos");
-        
-        // Organizar layout
+
+        jLabel2.setFont(new java.awt.Font("Lucida Fax", 0, 14));
+        jLabel2.setText("Resumo:");
+
+        lblTotalVendidos.setText("Total de produtos vendidos: 0");
+
+        lblValorTotal.setText("Valor total: R$ 0,00");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(50, 50, 50)
+                .addGap(40, 40, 40)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel1)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(btnVoltar, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(50, Short.MAX_VALUE))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnVoltar, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel2)
+                    .addComponent(lblTotalVendidos)
+                    .addComponent(lblValorTotal))
+                .addContainerGap(40, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -60,47 +74,78 @@ public class VendasVIEW extends javax.swing.JFrame {
                 .addGap(30, 30, 30)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(30, 30, 30)
+                .addComponent(jLabel2)
+                .addGap(10, 10, 10)
+                .addComponent(lblTotalVendidos)
+                .addGap(5, 5, 5)
+                .addComponent(lblValorTotal)
+                .addGap(30, 30, 30)
                 .addComponent(btnVoltar)
                 .addContainerGap(30, Short.MAX_VALUE))
         );
-        
+
         pack();
     }
-    
+
+    // ========== MÉTODO PARA CARREGAR PRODUTOS VENDIDOS ==========
     private void carregarProdutosVendidos() {
         try {
-            // Criar objeto DAO
             ProdutosDAO dao = new ProdutosDAO();
             
-            // Buscar produtos vendidos
-            ArrayList<ProdutosDTO> lista = dao.listarProdutosVendidos();
+            // Usa o método que busca apenas produtos com status "Vendido"
+            ArrayList<ProdutosDTO> listaVendidos = dao.listarProdutosVendidos();
             
-            // Pegar modelo da tabela
             DefaultTableModel model = (DefaultTableModel) tabelaVendidos.getModel();
-            model.setRowCount(0); // Limpar tabela
+            model.setRowCount(0); // Limpa tabela
             
-            // Adicionar cada produto na tabela
-            for (ProdutosDTO produto : lista) {
+            DecimalFormat df = new DecimalFormat("#,##0.00");
+            double valorTotal = 0;
+            
+            // Adiciona cada produto vendido na tabela
+            for (ProdutosDTO produto : listaVendidos) {
+                String valorFormatado = "R$ " + df.format(produto.getValor());
+                
                 model.addRow(new Object[]{
                     produto.getId(),
                     produto.getNome(),
-                    produto.getValor(),
+                    valorFormatado,
                     produto.getStatus()
                 });
+                
+                valorTotal += produto.getValor();
+            }
+            
+            // Atualiza os labels com as informações
+            lblTotalVendidos.setText("Total de produtos vendidos: " + listaVendidos.size());
+            lblValorTotal.setText("Valor total: R$ " + df.format(valorTotal));
+            
+            // Mensagem se não houver produtos vendidos
+            if (listaVendidos.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                    "Nenhum produto vendido ainda!",
+                    "Informação",
+                    JOptionPane.INFORMATION_MESSAGE);
             }
             
         } catch (Exception e) {
-            System.out.println("Erro: " + e.getMessage());
+            JOptionPane.showMessageDialog(this,
+                "Erro ao carregar produtos vendidos: " + e.getMessage(),
+                "Erro",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
+    // ========== BOTÃO VOLTAR ==========
     private void btnVoltarActionPerformed(java.awt.event.ActionEvent evt) {
-        this.dispose(); // Fechar esta janela
+        this.dispose(); // Fecha esta janela
     }
-    
-    // Variáveis
+
+    // ========== VARIÁVEIS ==========
     private javax.swing.JButton btnVoltar;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblTotalVendidos;
+    private javax.swing.JLabel lblValorTotal;
     private javax.swing.JTable tabelaVendidos;
 }
